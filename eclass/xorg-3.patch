@@ -1,0 +1,324 @@
+--- xorg-2.eclass	2017-03-07 07:50:11.327378947 +0200
++++ xorg-3.eclass	2017-03-14 19:04:36.586139662 +0200
+@@ -1,7 +1,7 @@
+-# Copyright 1999-2015 Gentoo Foundation
++# Copyright 1999-2017 Gentoo Foundation
+ # Distributed under the terms of the GNU General Public License v2
+ 
+-# @ECLASS: xorg-2.eclass
++# @ECLASS: xorg-3.eclass
+ # @MAINTAINER:
+ # x11@gentoo.org
+ # @AUTHOR:
+@@ -43,21 +43,20 @@
+ : ${XORG_MULTILIB:="no"}
+ 
+ # we need to inherit autotools first to get the deps
+-inherit autotools autotools-utils eutils libtool multilib toolchain-funcs \
++inherit autotools libtool multilib toolchain-funcs \
+ 	flag-o-matic ${FONT_ECLASS} ${GIT_ECLASS}
+ 
+-if [[ ${XORG_MULTILIB} == yes ]]; then
+-	inherit autotools-multilib
+-fi
++#if [[ ${XORG_MULTILIB} == yes ]]; then
++#	inherit autotools-multilib
++#fi
+ 
+-EXPORTED_FUNCTIONS="src_unpack src_compile src_install pkg_postinst pkg_postrm"
+ case "${EAPI:-0}" in
+-	3|4|5) EXPORTED_FUNCTIONS="${EXPORTED_FUNCTIONS} src_prepare src_configure" ;;
++	6) ;;
+ 	*) die "EAPI=${EAPI} is not supported" ;;
+ esac
+ 
+ # exports must be ALWAYS after inherit
+-EXPORT_FUNCTIONS ${EXPORTED_FUNCTIONS}
++EXPORT_FUNCTIONS src_prepare src_configure src_install pkg_postinst pkg_postrm
+ 
+ IUSE=""
+ HOMEPAGE="https://www.x.org/wiki/"
+@@ -100,7 +99,7 @@
+ : ${XORG_PACKAGE_NAME:=${PN}}
+ 
+ if [[ -n ${GIT_ECLASS} ]]; then
+-	: ${EGIT_REPO_URI:="git://anongit.freedesktop.org/xorg/${XORG_MODULE}${XORG_PACKAGE_NAME} http://anongit.freedesktop.org/git/xorg/${XORG_MODULE}${XORG_PACKAGE_NAME}"}
++	: ${EGIT_REPO_URI:="git://anongit.freedesktop.org/xorg/${XORG_MODULE}${XORG_PACKAGE_NAME} https://anongit.freedesktop.org/git/xorg/${XORG_MODULE}${XORG_PACKAGE_NAME}"}
+ elif [[ -n ${XORG_BASE_INDIVIDUAL_URI} ]]; then
+ 	SRC_URI="${XORG_BASE_INDIVIDUAL_URI}/${XORG_MODULE}${P}.tar.bz2"
+ fi
+@@ -292,13 +291,7 @@
+ fi
+ 
+ if [[ ${XORG_MODULE_REBUILD} == yes ]]; then
+-	case ${EAPI} in
+-		3|4)
+-			;;
+-		*)
+-			RDEPEND+=" x11-base/xorg-server:="
+-			;;
+-	esac
++	RDEPEND+=" x11-base/xorg-server:="
+ fi
+ 
+ DEPEND+=" ${COMMON_DEPEND}"
+@@ -313,79 +306,29 @@
+ debug-print "${LINENO} ${ECLASS} ${FUNCNAME}: RDEPEND=${RDEPEND}"
+ debug-print "${LINENO} ${ECLASS} ${FUNCNAME}: PDEPEND=${PDEPEND}"
+ 
+-# @FUNCTION: xorg-2_pkg_setup
++# @FUNCTION: xorg-3_pkg_setup
+ # @DESCRIPTION:
+ # Setup prefix compat
+-xorg-2_pkg_setup() {
++xorg-3_pkg_setup() {
+ 	debug-print-function ${FUNCNAME} "$@"
+ 
+ 	[[ ${FONT} == yes ]] && font_pkg_setup "$@"
+ }
+ 
+-# @FUNCTION: xorg-2_src_unpack
+-# @DESCRIPTION:
+-# Simply unpack source code.
+-xorg-2_src_unpack() {
+-	debug-print-function ${FUNCNAME} "$@"
+-
+-	if [[ -n ${GIT_ECLASS} ]]; then
+-		git-r3_src_unpack
+-	else
+-		unpack ${A}
+-	fi
+-
+-	[[ -n ${FONT_OPTIONS} ]] && einfo "Detected font directory: ${FONT_DIR}"
+-}
+-
+-# @FUNCTION: xorg-2_patch_source
+-# @DESCRIPTION:
+-# Apply all patches
+-xorg-2_patch_source() {
+-	debug-print-function ${FUNCNAME} "$@"
+-
+-	# Use standardized names and locations with bulk patching
+-	# Patch directory is ${WORKDIR}/patch
+-	# See epatch() in eutils.eclass for more documentation
+-	EPATCH_SUFFIX=${EPATCH_SUFFIX:=patch}
+-
+-	[[ -d "${EPATCH_SOURCE}" ]] && epatch
+-}
+-
+-# @FUNCTION: xorg-2_reconf_source
+-# @DESCRIPTION:
+-# Run eautoreconf if necessary, and run elibtoolize.
+-xorg-2_reconf_source() {
+-	debug-print-function ${FUNCNAME} "$@"
+-
+-	case ${CHOST} in
+-		*-aix* | *-winnt*)
+-			# some hosts need full eautoreconf
+-			[[ -e "./configure.ac" || -e "./configure.in" ]] \
+-				&& AUTOTOOLS_AUTORECONF=1
+-			;;
+-		*)
+-			# elibtoolize required for BSD
+-			[[ ${XORG_EAUTORECONF} != no && ( -e "./configure.ac" || -e "./configure.in" ) ]] \
+-				&& AUTOTOOLS_AUTORECONF=1
+-			;;
+-	esac
+-}
+-
+-# @FUNCTION: xorg-2_src_prepare
++# @FUNCTION: xorg-3_src_prepare
+ # @DESCRIPTION:
+ # Prepare a package after unpacking, performing all X-related tasks.
+-xorg-2_src_prepare() {
++xorg-3_src_prepare() {
+ 	debug-print-function ${FUNCNAME} "$@"
+ 
+-	xorg-2_patch_source
+-	xorg-2_reconf_source
+-	autotools-utils_src_prepare "$@"
++	default
++	[[ ${XORG_EAUTORECONF} ]] && eautoreconf
+ }
+ 
+-# @FUNCTION: xorg-2_font_configure
++# @FUNCTION: xorg-3_font_configure
+ # @DESCRIPTION:
+ # If a font package, perform any necessary configuration steps
+-xorg-2_font_configure() {
++xorg-3_font_configure() {
+ 	debug-print-function ${FUNCNAME} "$@"
+ 
+ 	if has nls ${IUSE//+} && ! use nls; then
+@@ -415,10 +358,10 @@
+ 	fi
+ }
+ 
+-# @FUNCTION: xorg-2_flags_setup
++# @FUNCTION: xorg-3_flags_setup
+ # @DESCRIPTION:
+ # Set up CFLAGS for a debug build
+-xorg-2_flags_setup() {
++xorg-3_flags_setup() {
+ 	debug-print-function ${FUNCNAME} "$@"
+ 
+ 	# Win32 require special define
+@@ -434,38 +377,21 @@
+ 	fi
+ }
+ 
+-# @FUNCTION: xorg-2_src_configure
++# @FUNCTION: xorg-3_src_configure
+ # @DESCRIPTION:
+ # Perform any necessary pre-configuration steps, then run configure
+-xorg-2_src_configure() {
++xorg-3_src_configure() {
+ 	debug-print-function ${FUNCNAME} "$@"
+ 
+-	xorg-2_flags_setup
++	xorg-3_flags_setup
+ 
+ 	# @VARIABLE: XORG_CONFIGURE_OPTIONS
+ 	# @DESCRIPTION:
+ 	# Array of an additional options to pass to configure.
+ 	# @DEFAULT_UNSET
+-	if [[ $(declare -p XORG_CONFIGURE_OPTIONS 2>&-) != "declare -a"* ]]; then
+-		# fallback to CONFIGURE_OPTIONS, deprecated.
+-		if [[ -n "${CONFIGURE_OPTIONS}" ]]; then
+-			eqawarn "CONFIGURE_OPTIONS are deprecated. Please migrate to XORG_CONFIGURE_OPTIONS"
+-			eqawarn "to preserve namespace."
+-		fi
+-
+-		local xorgconfadd=(${CONFIGURE_OPTIONS} ${XORG_CONFIGURE_OPTIONS})
+-	else
+-		local xorgconfadd=("${XORG_CONFIGURE_OPTIONS[@]}")
+-	fi
+-
+-	[[ -n "${FONT}" ]] && xorg-2_font_configure
++	local xorgconfadd=("${XORG_CONFIGURE_OPTIONS[@]}")
+ 
+-	# Check if package supports disabling of dep tracking
+-	# Fixes warnings like:
+-	#    WARNING: unrecognized options: --disable-dependency-tracking
+-	if grep -q -s "disable-depencency-tracking" ${ECONF_SOURCE:-.}/configure; then
+-		local dep_track="--disable-dependency-tracking"
+-	fi
++	[[ -n "${FONT}" ]] && xorg-3_font_configure
+ 
+ 	# Check if package supports disabling of selective -Werror=...
+ 	if grep -q -s "disable-selective-werror" ${ECONF_SOURCE:-.}/configure; then
+@@ -473,40 +399,28 @@
+ 	fi
+ 
+ 	local myeconfargs=(
+-		${dep_track}
+ 		${selective_werror}
+ 		${FONT_OPTIONS}
+ 		"${xorgconfadd[@]}"
+ 	)
+ 
+-	if [[ ${XORG_MULTILIB} == yes ]]; then
+-		autotools-multilib_src_configure "$@"
+-	else
+-		autotools-utils_src_configure "$@"
+-	fi
++	econf "${myeconfargs[@]}"
++#	if [[ ${XORG_MULTILIB} == yes ]]; then
++#		autotools-multilib_src_configure "$@"
++#	else
++#		autotools-utils_src_configure "$@"
++#	fi
+ }
+ 
+-# @FUNCTION: xorg-2_src_compile
+-# @DESCRIPTION:
+-# Compile a package, performing all X-related tasks.
+-xorg-2_src_compile() {
+-	debug-print-function ${FUNCNAME} "$@"
+ 
+-	if [[ ${XORG_MULTILIB} == yes ]]; then
+-		autotools-multilib_src_compile "$@"
+-	else
+-		autotools-utils_src_compile "$@"
+-	fi
+-}
+-
+-# @FUNCTION: xorg-2_src_install
++# @FUNCTION: xorg-3_src_install
+ # @DESCRIPTION:
+ # Install a built package to ${D}, performing any necessary steps.
+ # Creates a ChangeLog from git if using live ebuilds.
+-xorg-2_src_install() {
++xorg-3_src_install() {
+ 	debug-print-function ${FUNCNAME} "$@"
+ 
+-	local install_args=( docdir="${EPREFIX}/usr/share/doc/${PF}" )
++#	local install_args=( docdir="${EPREFIX}/usr/share/doc/${PF}" )
+ 
+ 	if [[ ${CATEGORY} == x11-proto ]]; then
+ 		install_args+=(
+@@ -514,33 +428,33 @@
+ 		)
+ 	fi
+ 
+-	if [[ ${XORG_MULTILIB} == yes ]]; then
+-		autotools-multilib_src_install "${install_args[@]}"
+-	else
+-		autotools-utils_src_install "${install_args[@]}"
+-	fi
++#	if [[ ${XORG_MULTILIB} == yes ]]; then
++#		autotools-multilib_src_install "${install_args[@]}"
++#	else
++#		autotools-utils_src_install "${install_args[@]}"
++#	fi
++
++#	if [[ -n ${GIT_ECLASS} ]]; then
++#		pushd "${EGIT_STORE_DIR}/${EGIT_CLONE_DIR}" > /dev/null || die
++#		git log ${EGIT_COMMIT} > "${S}"/ChangeLog
++#		popd > /dev/null || die
++#	fi
+ 
+-	if [[ -n ${GIT_ECLASS} ]]; then
+-		pushd "${EGIT_STORE_DIR}/${EGIT_CLONE_DIR}" > /dev/null || die
+-		git log ${EGIT_COMMIT} > "${S}"/ChangeLog
+-		popd > /dev/null || die
+-	fi
+-
+-	if [[ -e "${S}"/ChangeLog ]]; then
+-		dodoc "${S}"/ChangeLog || die "dodoc failed"
+-	fi
++	default
+ 
+ 	# Don't install libtool archives (even for modules)
+-	prune_libtool_files --all
++#	prune_libtool_files --all
++	find "${D}" -name '*.la' -delete || die
++
+ 
+ 	[[ -n ${FONT} ]] && remove_font_metadata
+ }
+ 
+-# @FUNCTION: xorg-2_pkg_postinst
++# @FUNCTION: xorg-3_pkg_postinst
+ # @DESCRIPTION:
+ # Run X-specific post-installation tasks on the live filesystem. The
+ # only task right now is some setup for font packages.
+-xorg-2_pkg_postinst() {
++xorg-3_pkg_postinst() {
+ 	debug-print-function ${FUNCNAME} "$@"
+ 
+ 	if [[ -n ${FONT} ]]; then
+@@ -550,11 +464,11 @@
+ 	fi
+ }
+ 
+-# @FUNCTION: xorg-2_pkg_postrm
++# @FUNCTION: xorg-3_pkg_postrm
+ # @DESCRIPTION:
+ # Run X-specific post-removal tasks on the live filesystem. The only
+ # task right now is some cleanup for font packages.
+-xorg-2_pkg_postrm() {
++xorg-3_pkg_postrm() {
+ 	debug-print-function ${FUNCNAME} "$@"
+ 
+ 	if [[ -n ${FONT} ]]; then
