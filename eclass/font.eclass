@@ -39,14 +39,6 @@ FONTDIR=${FONTDIR:-/usr/share/fonts/${FONT_PN}}
 # Array containing fontconfig conf files to install.
 FONT_CONF=( "" )
 
-# @ECLASS-VARIABLE: DOCS
-# @DEFAULT_UNSET
-# @DESCRIPTION:
-# Space delimited list of docs to install.
-# We always install these:
-# COPYRIGHT README{,.txt} NEWS AUTHORS BUGS ChangeLog FONTLOG.txt
-DOCS=${DOCS:-}
-
 IUSE="X"
 
 DEPEND="X? (
@@ -189,12 +181,7 @@ font_src_install() {
 
 	font_fontconfig
 
-	[[ -n ${DOCS} ]] && { dodoc ${DOCS} || die "docs installation failed" ; }
-
-	# install common docs
-	for commondoc in COPYRIGHT README{,.txt} NEWS AUTHORS BUGS ChangeLog FONTLOG.txt; do
-		[[ -s ${commondoc} ]] && dodoc ${commondoc}
-	done
+	einstalldocs
 }
 
 # @FUNCTION: font_pkg_postinst
